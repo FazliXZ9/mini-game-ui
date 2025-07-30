@@ -26,6 +26,42 @@ const games = ref([
     emoji: '🤔',
     description: 'Tebak angka rahasia komputer.',
   },
+  {
+    name: 'Puzzle',
+    path: '/SlidingPuzzle',
+    emoji: 'Beta Tes',
+    description: 'Beta Tes.',
+  },
+  {
+    name: 'Snake',
+    path: '/SnakeGame',
+    emoji: 'Beta Tes',
+    description: 'Beta Tes.',
+  },
+  {
+    name: 'Mine Sweeper',
+    path: '/MinesweeperGame',
+    emoji: 'Beta Tes',
+    description: 'Beta Tes.',
+  },
+   {
+    name: 'Breakout Game',
+    path: '/BreakoutGame',
+    emoji: 'Beta Tes',
+    description: 'Beta Tes.',
+  },
+  {
+    name: '2048',
+    path: '/Game2048',
+    emoji: 'Beta Tes',
+    description: 'Beta Tes.',
+  },
+  {
+    name: 'Chess',
+    path: '/ChessGame',
+    emoji: 'Beta Tes',
+    description: 'Beta Tes.',
+  },
 ]);
 </script>
 

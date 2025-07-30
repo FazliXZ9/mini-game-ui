@@ -1,5 +1,5 @@
 <script setup>
-// Tidak perlu script apa pun di sini
+
 </script>
 
 <template>

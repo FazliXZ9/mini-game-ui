@@ -170,7 +170,7 @@ async function saveScore() {
     const playerName = prompt("Game Over! Masukkan nama Anda untuk leaderboard:", `Player-${Date.now().toString().slice(-4)}`);
     if (!playerName) return;
     
-    await axios.post('http://192.168.8.207/api/scores', {
+    await axios.post('https://api.sainzlab.site/api/scores', {
       player_name: playerName,
       game_name: 'Tetris',
       score: score.value
@@ -185,13 +185,10 @@ async function saveScore() {
 async function fetchLeaderboard() {
   isLoading.value = true;
   try {
-    const response = await axios.get('http://192.168.8.207/api/scores');
-    leaderboard.value = response.data
-      .filter(s => s.game_name === 'Tetris')
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
+    const response = await axios.get('https://api.sainzlab.site/api/scores/Tetris');
+    leaderboard.value = response.data;
   } catch (error) {
-    console.error("Gagal mengambil leaderboard:", error);
+    console.error("Gagal mengambil leaderboard Tetris:", error);
   } finally {
     isLoading.value = false;
   }
@@ -222,7 +219,6 @@ onUnmounted(() => {
   if (gameInterval.value) clearInterval(gameInterval.value);
 });
 
-// --- Computed Properties untuk Rendering ---
 const renderedBoard = computed(() => {
   const newBoard = JSON.parse(JSON.stringify(board.value));
   if (currentPiece.value && !gameOver.value) {
@@ -347,7 +343,6 @@ const nextPieceBoard = computed(() => {
 </template>
 
 <style>
-/* Global styles for background and font */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
 :root {
@@ -403,7 +398,7 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   width: 100%;
-  max-width: 850px; /* Sedikit lebih lebar untuk PC */
+  max-width: 950px; /* Sedikit lebih lebar untuk PC */
 }
 
 .game-area {
@@ -653,7 +648,6 @@ body {
     font-size: 1.8rem;
   }
 }
-
 
 /* Cell Colors (using CSS variables) */
 .color-cyan    { background-color: var(--color-cyan); }
