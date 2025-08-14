@@ -1,10 +1,10 @@
 <script setup>
-
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <div id="app-container">
-    <router-view />
-  </div>
+  <RouterView />
 </template>
 
+<style scoped>
+</style>

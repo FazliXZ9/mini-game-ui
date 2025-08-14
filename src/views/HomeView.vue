@@ -29,24 +29,24 @@ const games = ref([
   {
     name: 'Puzzle',
     path: '/SlidingPuzzle',
-    emoji: 'Beta Tes',
-    description: 'Beta Tes.',
+    emoji: '',
+    description: 'Puzzle Geser.',
   },
   {
     name: 'Snake',
     path: '/SnakeGame',
-    emoji: 'Beta Tes',
-    description: 'Beta Tes.',
+    emoji: '',
+    description: 'Mini Game Snake.',
+  },
+  {
+    name: 'Breakout Game',
+    path: '/BreakoutGame',
+    emoji: '',
+    description: 'Memantulkan Bola ke balok-balok.',
   },
   {
     name: 'Mine Sweeper',
     path: '/MinesweeperGame',
-    emoji: 'Beta Tes',
-    description: 'Beta Tes.',
-  },
-   {
-    name: 'Breakout Game',
-    path: '/BreakoutGame',
     emoji: 'Beta Tes',
     description: 'Beta Tes.',
   },
@@ -108,10 +108,9 @@ const games = ref([
   width: 100%;
   max-width: 1024px;
   margin-top: auto;
-  padding: 48px 0 32px 0; /* Padding atas-bawah untuk desktop */
+  padding: 48px 0 32px 0; 
   text-align: center;
   box-sizing: border-box;
-  /* Properti border-top dihapus dari sini */
 }
 
 .footer p {
