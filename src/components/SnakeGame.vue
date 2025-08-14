@@ -2,11 +2,9 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import axios from 'axios';
 
-// --- Konfigurasi Game ---
 const BOARD_SIZE = 20;
-const INITIAL_SPEED = 200; // ms per gerakan
+const INITIAL_SPEED = 200; 
 
-// --- State Game ---
 const snake = ref([]);
 const food = ref({});
 const direction = ref({ x: 0, y: -1 });
@@ -16,13 +14,9 @@ const isGameOver = ref(false);
 const gameActive = ref(false);
 const gameInterval = ref(null);
 
-// --- State Leaderboard ---
 const leaderboard = ref([]);
 const isLoading = ref(true);
 
-// --- Fungsi Inisialisasi & Utama Game ---
-
-// Menyiapkan state awal tanpa memulai game loop
 function initializeGame() {
   snake.value = [{ x: 10, y: 10 }];
   direction.value = { x: 0, y: -1 };
@@ -34,9 +28,8 @@ function initializeGame() {
   if (gameInterval.value) clearInterval(gameInterval.value);
 }
 
-// Memulai game loop
 function startGame() {
-  initializeGame(); // Reset semuanya
+  initializeGame();
   gameActive.value = true;
   gameInterval.value = setInterval(gameLoop, INITIAL_SPEED);
 }
@@ -89,10 +82,9 @@ function endGame() {
   gameActive.value = false;
   isGameOver.value = true;
   clearInterval(gameInterval.value);
-  saveScore(); // Panggil simpan skor saat game berakhir
+  saveScore();
 }
 
-// --- Fungsi Leaderboard ---
 async function saveScore() {
   if (score.value === 0) return;
   try {
@@ -115,14 +107,14 @@ async function fetchLeaderboard() {
   try {
     const response = await axios.get('https://api.sainzlab.site/api/scores/Snake');
     leaderboard.value = response.data;
-  } catch (error) {
+  } catch (error)
+ {
     console.error("Gagal mengambil leaderboard Snake:", error);
   } finally {
     isLoading.value = false;
   }
 }
 
-// --- Kontrol & Lifecycle ---
 function handleKeyDown(event) {
   event.preventDefault();
   const key = event.key;
@@ -137,7 +129,7 @@ function handleKeyDown(event) {
 }
 
 onMounted(() => {
-  initializeGame(); // Siapkan game saat komponen dimuat
+  initializeGame();
   fetchLeaderboard();
   window.addEventListener('keydown', handleKeyDown);
 });
@@ -154,239 +146,234 @@ const boardStyle = computed(() => ({
 </script>
 
 <template>
-  <div class="card snake-card">
-    <div class="game-area">
-      <h1>Snake</h1>
-      <div class="board" :style="boardStyle">
-        <div 
-          v-for="(segment, index) in snake" 
-          :key="`snake-${index}`" 
-          class="snake-segment" 
-          :class="{ 'head': index === 0 }"
-          :style="{ gridColumn: segment.x + 1, gridRow: segment.y + 1 }"
-        ></div>
-        <div 
-          class="food" 
-          :style="{ gridColumn: food.x + 1, gridRow: food.y + 1 }"
-        ></div>
-        <div v-if="!gameActive" class="overlay">
-          <h2 v-if="isGameOver">Game Over!</h2>
-          <button @click="startGame" class="action-button">
-            {{ isGameOver ? 'Main Lagi' : 'Mulai Bermain' }}
-          </button>
+  <div class="page-container">
+    <router-link to="/" class="back-button">← Kembali</router-link>
+
+    <div class="snake-card">
+      <div class="game-area">
+        <h1>Snake</h1>
+        <div class="board" :style="boardStyle">
+          <div 
+            v-for="(segment, index) in snake" 
+            :key="`snake-${index}`" 
+            class="snake-segment" 
+            :class="{ 'head': index === 0 }"
+            :style="{ gridColumn: segment.x + 1, gridRow: segment.y + 1 }"
+          ></div>
+          <div 
+            class="food" 
+            :style="{ gridColumn: food.x + 1, gridRow: food.y + 1 }"
+          ></div>
+          <div v-if="!gameActive" class="overlay">
+            <h2 v-if="isGameOver">Game Over!</h2>
+            <button @click="startGame" class="action-button">
+              {{ isGameOver ? 'Main Lagi' : 'Mulai Bermain' }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="info-area">
-      <div class="info-box mobile-controls">
-         <h3>KONTROL</h3>
-         <div class="d-pad">
-            <div class="d-pad-cell"></div>
-            <button @click="pendingDirection = {x: 0, y: -1}" class="mobile-btn">↑</button>
-            <div class="d-pad-cell"></div>
-
-            <button @click="pendingDirection = {x: -1, y: 0}" class="mobile-btn">←</button>
-            <div class="d-pad-cell center"></div>
-            <button @click="pendingDirection = {x: 1, y: 0}" class="mobile-btn">→</button>
-            
-            <div class="d-pad-cell"></div>
-            <button @click="pendingDirection = {x: 0, y: 1}" class="mobile-btn">↓</button>
-            <div class="d-pad-cell"></div>
-         </div>
-      </div>
-      <div class="info-box">
-        <h3>SKOR</h3>
-        <p class="score-value">{{ score }}</p>
-      </div>
-      <div class="info-box leaderboard-box">
-        <h3>🏆 LEADERBOARD</h3>
-        <div v-if="isLoading" class="loading-text">Memuat...</div>
-        <ul v-else-if="leaderboard.length > 0">
-          <li v-for="(item, index) in leaderboard" :key="item.id">
-            <span>#{{ index + 1 }} {{ item.player_name }}</span>
-            <strong>{{ item.score }}</strong>
-          </li>
-        </ul>
-        <div v-else class="loading-text">Belum ada data.</div>
-      </div>
-      <div class="info-box desktop-controls">
-        <h3>KONTROL</h3>
-        <p class="controls-text">Gunakan tombol panah atau W, A, S, D untuk bergerak.</p>
+      <div class="info-area">
+        <div class="info-box mobile-controls">
+           <h3>KONTROL</h3>
+           <div class="d-pad">
+              <div class="d-pad-cell"></div>
+              <button @click="pendingDirection = {x: 0, y: -1}" class="mobile-btn">↑</button>
+              <div class="d-pad-cell"></div>
+              <button @click="pendingDirection = {x: -1, y: 0}" class="mobile-btn">←</button>
+              <div class="d-pad-cell center"></div>
+              <button @click="pendingDirection = {x: 1, y: 0}" class="mobile-btn">→</button>
+              <div class="d-pad-cell"></div>
+              <button @click="pendingDirection = {x: 0, y: 1}" class="mobile-btn">↓</button>
+              <div class="d-pad-cell"></div>
+           </div>
+        </div>
+        <div class="info-box">
+          <h3>SKOR</h3>
+          <p class="score-value">{{ score }}</p>
+        </div>
+        <div class="info-box leaderboard-box">
+          <h3>🏆 LEADERBOARD</h3>
+          <div v-if="isLoading" class="loading-text">Memuat...</div>
+          <ul v-else-if="leaderboard.length > 0">
+            <li v-for="(item, index) in leaderboard" :key="item.id">
+              <span>#{{ index + 1 }} {{ item.player_name }}</span>
+              <strong>{{ item.score }}</strong>
+            </li>
+          </ul>
+          <div v-else class="loading-text">Belum ada data.</div>
+        </div>
+        <div class="info-box desktop-controls">
+          <h3>KONTROL</h3>
+          <p class="controls-text">Gunakan tombol panah atau W, A, S, D untuk bergerak.</p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.card {
-  width: 100%;
-  max-width: 700px;
-  background: #1a1a2e;
-  border-radius: 24px;
-  padding: 2rem;
-  border: 1px solid rgba(128, 128, 150, 0.3);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+.page-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 6rem 1.5rem 1.5rem 1.5rem;
   font-family: 'Poppins', sans-serif;
-  color: #e0e0e0;
+  color: var(--text-primary, #e0e0e0);
+}
+
+.back-button {
+  position: absolute;
+  top: 1.5rem; left: 1.5rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary, #a0a0a0);
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+}
+.back-button:hover { background-color: #2c3e50; color: #fff; }
+
+.snake-card {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 2rem;
+  width: 100%;
+  max-width: 1000px;
 }
 
-.game-area {
-  flex: 2;
-  min-width: 300px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.info-area {
-  flex: 1;
-  min-width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
+.game-area { text-align: center; }
 h1 {
-  font-size: 2.8rem;
+  font-size: 2.5rem;
   font-weight: 700;
-  color: white;
-  margin: 0 0 1.5rem 0;
-  text-shadow: 0 0 10px #00e676;
-  text-align: center;
+  color: var(--accent-color, #e94560);
+  margin-bottom: 1rem;
 }
 
 .board {
   display: grid;
-  background: #161625;
-  border: 3px solid rgba(128, 128, 150, 0.3);
-  border-radius: 8px;
-  position: relative;
   aspect-ratio: 1 / 1;
   width: 100%;
-  box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+  max-width: 60vh;
+  margin: 0 auto;
+  position: relative;
+  background-color: #0c0c14;
+  border: 4px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 8px;
+  --grid-size: calc(100% / 20);
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
 }
 
 .snake-segment {
-  background-color: #00e676;
-  border-radius: 25%;
-  box-shadow: 0 0 8px #00e676;
+  background-color: #33ff33;
+  border-radius: 20%;
+  box-shadow: 0 0 8px #33ff33;
 }
 .snake-segment.head {
-  background-color: #69f0ae;
-  box-shadow: 0 0 12px #69f0ae;
+  background-color: #9dff9d;
+  box-shadow: 0 0 12px #9dff9d;
 }
 
 .food {
-  background-color: #ff1744;
+  background-color: #ff3333;
   border-radius: 50%;
-  box-shadow: 0 0 10px #ff1744;
+  box-shadow: 0 0 10px #ff3333;
+  animation: pulse 1s infinite ease-in-out;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
 }
 
 .overlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 15, 25, 0.7);
-  backdrop-filter: blur(4px);
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
   border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
 }
-.overlay h2 { font-size: 2rem; color: #ff1744; margin-bottom: 1rem; }
+.overlay h2 { font-size: 2rem; margin-bottom: 1.5rem; color: #fff; }
 .action-button {
-  background: #6a82fb;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.8rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
+  padding: 12px 24px; font-size: 1.2rem; font-weight: 600; color: #fff;
+  background-color: var(--accent-color, #e94560);
+  border: none; border-radius: 8px; cursor: pointer;
+  transition: background-color 0.2s ease;
 }
+.action-button:hover { background-color: var(--accent-hover, #ff6e87); }
 
+.info-area {
+  display: flex; flex-direction: column; gap: 1.5rem;
+  width: 100%; max-width: 400px; margin: 0 auto;
+}
 .info-box {
-  background: #161625;
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  border: 1px solid rgba(128, 128, 150, 0.3);
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 12px; padding: 1rem;
 }
 .info-box h3 {
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 1px;
-  color: #a0a0c0;
-  margin: 0 0 0.5rem 0;
-  text-transform: uppercase;
+  font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem; text-align: center;
+  border-bottom: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  color: var(--accent-color, #e94560);
 }
-/* PERBAIKAN: Buat style skor lebih spesifik */
-.info-box p.score-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: white;
-  margin: 0;
-  line-height: 1;
-}
+.score-value { font-size: 2.5rem; font-weight: 700; text-align: center; }
 
-.leaderboard-box ul { list-style: none; padding: 0; margin: 0; font-size: 0.95rem; }
-.leaderboard-box li {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(128, 128, 150, 0.3);
-}
-.leaderboard-box li:last-child { border-bottom: none; }
-.leaderboard-box strong { color: #6a82fb; font-weight: 700; }
-.loading-text { font-size: 0.9rem; color: #a0a0c0; text-align: center; padding: 1rem 0; }
-
-.mobile-controls { text-align: center; }
 .d-pad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
-  max-width: 180px;
-  margin: 0.5rem auto 0;
+  max-width: 250px; 
+  margin: 0 auto; 
 }
 .mobile-btn {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(128, 128, 150, 0.3);
-  color: #e0e0e0;
-  border-radius: 12px;
-  font-size: 1.5rem;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.mobile-btn:active { background-color: #6a82fb; }
-
-.desktop-controls {
-  display: none; /* Sembunyikan di mobile secara default */
-}
-.controls-text {
-  font-size: 0.9rem;
-  color: #a0a0c0;
-  line-height: 1.6;
-}
-.controls-text strong {
-  color: #e0e0e0;
-  background: rgba(255,255,255,0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
+  aspect-ratio: 1 / 1; 
+  font-size: 1.8rem; 
+  font-weight: bold;
+  background-color: rgba(255,255,255,0.1);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  color: var(--text-primary, #e0e0e0);
+  border-radius: 8px; cursor: pointer;
 }
 
-@media (min-width: 768px) {
-  .mobile-controls {
-    display: none; /* Sembunyikan kontrol mobile di desktop */
+.mobile-btn:active { background-color: rgba(255,255,255,0.2); }
+.d-pad-cell { background: transparent; }
+
+.leaderboard-box ul { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
+.leaderboard-box li { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.leaderboard-box li:last-child { border-bottom: none; }
+.leaderboard-box li span { color: var(--text-secondary); }
+.leaderboard-box li strong { color: var(--text-primary); }
+.loading-text { text-align: center; color: var(--text-secondary); }
+
+.desktop-controls { text-align: center; }
+.controls-text { color: var(--text-secondary); }
+
+@media (min-width: 992px) {
+  .page-container {
+    align-items: center;
+    padding: 1.5rem;
   }
-  .desktop-controls {
-    display: block; /* Tampilkan info kontrol desktop */
+  .snake-card {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .game-area { flex: 2; }
+  .info-area {
+    flex: 1;
+    max-width: 350px;
+  }
+
+  .mobile-controls {
+    display: none;
   }
 }
 </style>

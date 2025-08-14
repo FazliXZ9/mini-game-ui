@@ -82,7 +82,6 @@ async function fetchLeaderboard() {
   isLoading.value = true;
   try {
     const response = await axios.get('https://api.sainzlab.site/api/scores/Puzzle Geser');
-    // PERBAIKAN: Urutkan data dari skor terendah ke tertinggi
     leaderboard.value = response.data.sort((a, b) => a.score - b.score);
   } catch (error) {
     console.error("Gagal mengambil leaderboard:", error);
@@ -110,7 +109,7 @@ function checkWin() {
 function handleTileClick(row, col) {
   if (isSolved.value) return;
 
-  if (!gameActive.value) {
+  if (!gameActive.value && !isSolved.value) {
     gameActive.value = true;
     timer.value = setInterval(() => {
       timeElapsed.value++;
@@ -146,266 +145,246 @@ const formattedTime = computed(() => {
 </script>
 
 <template>
-  <div class="card puzzle-card">
-    <div class="puzzle-main">
-      <h1>Puzzle Geser</h1>
-      
-      <div class="stats-container">
-        <div class="stat-box">
-          <span class="stat-label">Langkah</span>
-          <span class="stat-value">{{ moves }}</span>
+  <div class="page-container">
+    <router-link to="/" class="back-button">← Kembali</router-link>
+
+    <div class="card puzzle-card">
+      <div class="puzzle-main">
+        <h1>Puzzle Geser</h1>
+        
+        <div class="stats-container">
+          <div class="stat-box">
+            <span class="stat-label">Langkah</span>
+            <span class="stat-value">{{ moves }}</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Waktu</span>
+            <span class="stat-value">{{ formattedTime }}</span>
+          </div>
         </div>
-        <div class="stat-box">
-          <span class="stat-label">Waktu</span>
-          <span class="stat-value">{{ formattedTime }}</span>
+        
+        <p v-if="isSolved" class="status solved">✨ Selesai! ✨</p>
+
+        <div class="board">
+          <div v-for="(row, rowIndex) in tiles" :key="rowIndex" class="puzzle-row">
+            <div 
+              v-for="(tile, colIndex) in row" 
+              :key="colIndex"
+              class="tile"
+              :class="{ 'empty': tile === null, 'solved': isSolved }"
+              @click="handleTileClick(rowIndex, colIndex)"
+            >
+              {{ tile }}
+            </div>
+          </div>
         </div>
+
+        <button @click="startGame" class="reset-button">Acak Ulang</button>
       </div>
-      
-      <p v-if="isSolved" class="status solved">Selesai!</p>
 
-      <div class="board">
-        <div v-for="(row, rowIndex) in tiles" :key="rowIndex" class="puzzle-row">
-          <div 
-            v-for="(tile, colIndex) in row" 
-            :key="colIndex"
-            class="tile"
-            :class="{ 'empty': tile === null }"
-            @click="handleTileClick(rowIndex, colIndex)"
-          >
-            {{ tile }}
-          </div>
-        </div>
+      <div class="leaderboard-section">
+        <h3>🏆 Leaderboard</h3>
+        <p class="leaderboard-subtitle">Waktu tercepat lebih baik!</p>
+        <div v-if="isLoading" class="loading-text">Memuat...</div>
+        <ul v-else-if="leaderboard.length > 0" class="leaderboard-list">
+          <li v-for="(item, index) in leaderboard" :key="item.id" class="leaderboard-item">
+            <div class="player-info">
+              <span class="rank">{{ medals[index] || `#${index + 1}` }}</span>
+              <span class="player-name">{{ item.player_name }}</span>
+            </div>
+            <div class="score-info">
+              <span class="score-value">{{ Math.floor(item.score / 60) }}:{{ String(item.score % 60).padStart(2, '0') }}</span>
+              <span class="score-label">waktu</span>
+            </div>
+          </li>
+        </ul>
+        <div v-else class="loading-text">Belum ada skor. Jadilah yang pertama!</div>
       </div>
-
-      <button @click="startGame" class="reset-button">Acak Ulang</button>
-    </div>
-
-    <div class="leaderboard-section">
-      <h3>🏆 Leaderboard</h3>
-      <div v-if="isLoading" class="loading-text">Memuat...</div>
-      <ul v-else-if="leaderboard.length > 0" class="leaderboard-list">
-        <li v-for="(item, index) in leaderboard" :key="item.id" class="leaderboard-item">
-          <div class="player-info">
-            <span class="rank">{{ medals[index] || `#${index + 1}` }}</span>
-            <span class="player-name">{{ item.player_name }}</span>
-          </div>
-          <div class="score-info">
-            <span class="score-value">{{ Math.floor(item.score / 60) }}:{{ String(item.score % 60).padStart(2, '0') }}</span>
-            <span class="score-label">waktu</span>
-          </div>
-        </li>
-      </ul>
-      <div v-else class="loading-text">Belum ada skor.</div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.card {
+.page-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 6rem 1.5rem 1.5rem 1.5rem;
+  font-family: 'Poppins', sans-serif;
+  color: var(--text-primary, #e0e0e0);
+}
+
+.back-button {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary, #a0a0a0);
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+}
+.back-button:hover {
+  background-color: #2c3e50;
+  color: #fff;
+}
+
+.puzzle-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
   width: 100%;
-  max-width: 420px; /* Max-width untuk mobile */
-  background: #ffffff;
-  border-radius: 24px;
+  max-width: 900px;
+}
+
+.puzzle-main, .leaderboard-section {
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 16px;
   padding: 2rem;
   text-align: center;
-  border: 1px solid #e8e8e8;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-  font-family: 'Poppins', sans-serif;
-  color: #2c3e50;
+}
+
+h1, h3 {
+  color: var(--accent-color, #e94560);
+  margin: 0 0 1.5rem 0;
+}
+h1 { font-size: 2.5rem; }
+h3 { font-size: 1.5rem; }
+
+.stats-container {
   display: flex;
-  flex-direction: column; /* Susun vertikal di mobile */
+  justify-content: center;
   gap: 2rem;
-}
-
-.puzzle-main {
-  width: 100%;
-}
-
-.leaderboard-section {
-  width: 100%;
-  text-align: left;
-}
-.leaderboard-section h3 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-top: 0;
   margin-bottom: 1.5rem;
-  text-align: center;
-  color: #34495e;
+}
+.stat-box {
+  background-color: var(--bg-color-deep, #10101a);
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #a0a0a0);
+}
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.status.solved {
+  color: #33ff33;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: var(--bg-color-deep, #10101a);
+  border-radius: 12px;
+  padding: 8px;
+  margin: 0 auto 1.5rem auto;
+  max-width: 400px;
+}
+.puzzle-row {
+  display: flex;
+  gap: 8px;
+}
+.tile {
+  flex: 1;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #2c3e50;
+  border-radius: 8px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.2s;
+}
+.tile:hover {
+  background-color: #4a5568;
+  transform: scale(1.05);
+}
+.tile.empty {
+  background-color: transparent;
+  cursor: default;
+  transform: none;
+}
+.tile.solved {
+  background-color: var(--accent-color, #e94560);
+  color: #fff;
+}
+
+.reset-button {
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: var(--accent-color, #e94560);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.reset-button:hover {
+  background-color: var(--accent-hover, #ff6e87);
+}
+
+.leaderboard-subtitle {
+  font-size: 0.9rem;
+  margin: -1.5rem 0 1.5rem 0;
+  color: var(--text-secondary, #a0a0a0);
 }
 .leaderboard-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem; /* Jarak antar kartu */
 }
 .leaderboard-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: #f9fafb;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f0f0f0;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
 }
-.leaderboard-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-}
-.player-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.rank {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #7f8c8d;
-  width: 35px;
-  text-align: center;
-}
-.player-name {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 0.9rem;
-}
-.score-info {
-  text-align: right;
-}
-.score-value {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #3498db;
-}
-.score-label {
-  display: block;
-  font-size: 0.7rem;
-  color: #95a5a6;
-  text-transform: uppercase;
-}
-.loading-text { font-size: 0.9rem; color: #7f8c8d; text-align: center; padding: 2rem 0; }
+.leaderboard-item:last-child { border-bottom: none; }
+.player-info { display: flex; align-items: center; gap: 1rem; }
+.rank { font-weight: 700; font-size: 1.2rem; min-width: 35px; }
+.player-name { font-weight: 600; }
+.score-info { text-align: right; }
+.score-value { font-weight: 700; font-size: 1.2rem; }
+.score-label { display: block; font-size: 0.8rem; color: var(--text-secondary, #a0a0a0); }
 
-h1 {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-}
-
-.stats-container {
-  display: flex;
-  justify-content: space-around;
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.stat-box {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-label {
-  font-size: 0.8rem;
-  color: #7f8c8d;
-  font-weight: 600;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #34495e;
-}
-
-.status.solved {
-  min-height: 28px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-  color: #27ae60;
-}
-
-.board {
-  display: grid;
-  grid-template-rows: repeat(3, 1fr);
-  gap: 10px;
-  margin: 0 auto 1.5rem auto;
-  aspect-ratio: 1 / 1;
-  max-width: 320px;
-}
-
-.puzzle-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.tile {
-  background: #3498db;
-  color: white;
-  border-radius: 8px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 2.5rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-}
-
-.tile:hover {
-  transform: scale(1.05);
-}
-
-.tile.empty {
-  background: #ecf0f1;
-  cursor: default;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-}
-
-.tile.empty:hover {
-  transform: none;
-}
-
-.reset-button {
-  background: #34495e;
-  border: none;
-  color: white;
-  padding: 0.7rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.reset-button:hover {
-  background: #2c3e50;
-}
-
-.desktop-controls {
-  display: none; /* Sembunyikan di mobile secara default */
-}
-
-/* --- PERUBAHAN UNTUK DESKTOP --- */
-@media (min-width: 800px) {
-  .card {
-    flex-direction: row; /* Susun berdampingan di desktop */
+@media (min-width: 992px) {
+  .page-container {
+    align-items: center;
+    padding: 1.5rem;
+  }
+  .puzzle-card {
+    flex-direction: row;
     align-items: flex-start;
-    max-width: 800px; /* Lebarkan kartu utama */
   }
-
   .puzzle-main {
-    flex: 1; /* Biarkan game mengambil ruang yang dibutuhkan */
+    flex: 2; 
   }
-
   .leaderboard-section {
-    flex-basis: 250px; /* Beri lebar tetap untuk leaderboard */
-    flex-shrink: 0; /* Jangan biarkan leaderboard menyusut */
+    flex: 1; 
   }
 }
 </style>

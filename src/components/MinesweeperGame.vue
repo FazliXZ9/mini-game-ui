@@ -173,7 +173,7 @@ async function fetchLeaderboard() {
   isLoading.value = true;
   try {
     const response = await axios.get('https://api.sainzlab.site/api/scores/Minesweeper');
-    leaderboard.value = response.data; // Asumsi backend sudah mengurutkan (asc)
+    leaderboard.value = response.data; 
   } catch (error) {
     console.error("Gagal mengambil leaderboard:", error);
   } finally {

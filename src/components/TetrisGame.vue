@@ -1,8 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import axios from 'axios'; // Pastikan axios terinstal
+import axios from 'axios';
 
-// --- Konfigurasi Game ---
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
 
@@ -17,7 +16,6 @@ const TETROMINOES = {
 };
 const TETROMINO_KEYS = Object.keys(TETROMINOES);
 
-// --- State Game ---
 const board = ref([]);
 const currentPiece = ref(null);
 const nextPiece = ref(null);
@@ -26,14 +24,17 @@ const score = ref(0);
 const gameOver = ref(false);
 const gameStarted = ref(false);
 const gameInterval = ref(null);
+const isClearingLines = ref(false);
 
-// --- State Leaderboard ---
+const level = ref(1);
+const linesClearedTotal = ref(0);
+const gameSpeed = ref(800);
+
 const leaderboard = ref([]);
 const isLoading = ref(true);
 
-// --- Fungsi Utama Game ---
 function createEmptyBoard() {
-  return Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill({ value: 0, color: null }));
+  return Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill({ value: 0, color: null, clearing: false }));
 }
 
 function getRandomPiece() {
@@ -44,17 +45,25 @@ function getRandomPiece() {
 function startGame() {
   board.value = createEmptyBoard();
   score.value = 0;
+  level.value = 1;
+  linesClearedTotal.value = 0;
+  gameSpeed.value = 800;
   gameOver.value = false;
   gameStarted.value = true;
   
   nextPiece.value = getRandomPiece();
   spawnNewPiece();
   
+  updateGameInterval();
+}
+
+function updateGameInterval() {
   if (gameInterval.value) clearInterval(gameInterval.value);
-  gameInterval.value = setInterval(moveDown, 800);
+  gameInterval.value = setInterval(moveDown, gameSpeed.value);
 }
 
 function spawnNewPiece() {
+  if (isClearingLines.value) return;
   currentPiece.value = nextPiece.value;
   nextPiece.value = getRandomPiece();
 
@@ -72,14 +81,14 @@ function spawnNewPiece() {
 }
 
 function moveDown() {
-  if (gameOver.value || !gameStarted.value) return;
+  if (gameOver.value || !gameStarted.value || isClearingLines.value) return;
   const newPosition = { ...currentPosition.value, y: currentPosition.value.y + 1 };
   if (!checkCollision(currentPiece.value.shape, newPosition)) {
     currentPosition.value = newPosition;
   } else {
     mergePiece();
     clearLines();
-    spawnNewPiece();
+    if (!isClearingLines.value) spawnNewPiece();
   }
 }
 
@@ -90,7 +99,7 @@ function mergePiece() {
         const boardX = currentPosition.value.x + x;
         const boardY = currentPosition.value.y + y;
         if (board.value[boardY]) {
-          board.value[boardY][boardX] = { value: 1, color: currentPiece.value.color };
+          board.value[boardY][boardX] = { value: 1, color: currentPiece.value.color, clearing: false };
         }
       }
     });
@@ -99,23 +108,39 @@ function mergePiece() {
 }
 
 function clearLines() {
-  let linesCleared = 0;
-  const scorePoints = [0, 40, 100, 300, 1200];
-
-  board.value = board.value.filter(row => {
+  let linesToClear = [];
+  board.value.forEach((row, y) => {
     if (row.every(cell => cell.value === 1)) {
-      linesCleared++;
-      return false;
+      linesToClear.push(y);
     }
-    return true;
   });
 
-  for (let i = 0; i < linesCleared; i++) {
-    board.value.unshift(Array(BOARD_WIDTH).fill({ value: 0, color: null }));
-  }
-  
-  if (linesCleared > 0) {
-    score.value += scorePoints[linesCleared];
+  if (linesToClear.length > 0) {
+    isClearingLines.value = true;
+    const scorePoints = [0, 40, 100, 300, 1200];
+    score.value += scorePoints[linesToClear.length] * level.value;
+    linesClearedTotal.value += linesToClear.length;
+
+    linesToClear.forEach(y => {
+      board.value[y].forEach(cell => cell.clearing = true);
+    });
+
+    setTimeout(() => {
+      board.value = board.value.filter((_, y) => !linesToClear.includes(y));
+      for (let i = 0; i < linesToClear.length; i++) {
+        board.value.unshift(Array(BOARD_WIDTH).fill({ value: 0, color: null, clearing: false }));
+      }
+      isClearingLines.value = false;
+      
+      const newLevel = Math.floor(linesClearedTotal.value / 10) + 1;
+      if (newLevel > level.value) {
+        level.value = newLevel;
+        gameSpeed.value = Math.max(100, 800 - (level.value - 1) * 50);
+        updateGameInterval();
+      }
+      
+      spawnNewPiece();
+    }, 300);
   }
 }
 
@@ -138,7 +163,7 @@ function checkCollision(pieceShape, piecePosition) {
 }
 
 function moveHorizontal(direction) {
-  if (gameOver.value || !gameStarted.value) return;
+  if (gameOver.value || !gameStarted.value || isClearingLines.value) return;
   const newPosition = { ...currentPosition.value, x: currentPosition.value.x + direction };
   if (!checkCollision(currentPiece.value.shape, newPosition)) {
     currentPosition.value = newPosition;
@@ -146,24 +171,27 @@ function moveHorizontal(direction) {
 }
 
 function rotate() {
-  if (gameOver.value || !gameStarted.value) return;
+  if (gameOver.value || !gameStarted.value || isClearingLines.value) return;
   const shape = currentPiece.value.shape;
   const newShape = shape[0].map((_, colIndex) => shape.map(row => row[colIndex]).reverse());
   const tempPosition = { ...currentPosition.value };
-  if (checkCollision(newShape, tempPosition)) {
-      tempPosition.x -= 1;
-      if (checkCollision(newShape, tempPosition)) {
-          tempPosition.x += 2;
-          if (checkCollision(newShape, tempPosition)) {
-              return;
-          }
-      }
+  
+  let canRotate = false;
+  const offsets = [0, 1, -1, 2, -2];
+  for (const offset of offsets) {
+    tempPosition.x = currentPosition.value.x + offset;
+    if (!checkCollision(newShape, tempPosition)) {
+      canRotate = true;
+      break;
+    }
   }
-  currentPiece.value.shape = newShape;
-  currentPosition.value = tempPosition;
+
+  if (canRotate) {
+    currentPiece.value.shape = newShape;
+    currentPosition.value = tempPosition;
+  }
 }
 
-// --- Fungsi Leaderboard ---
 async function saveScore() {
   if (score.value === 0) return;
   try {
@@ -194,17 +222,19 @@ async function fetchLeaderboard() {
   }
 }
 
-// --- Kontrol Keyboard & Lifecycle ---
 function handleKeyDown(event) {
-  // Mencegah aksi default browser (seperti scrolling)
+  if (event.key === 'r' || event.key === 'R') {
+    startGame();
+    return;
+  }
   event.preventDefault(); 
-
   if (!gameStarted.value) return;
   switch (event.key) {
     case 'ArrowLeft': moveHorizontal(-1); break;
     case 'ArrowRight': moveHorizontal(1); break;
     case 'ArrowDown': moveDown(); break;
     case 'ArrowUp': rotate(); break;
+    case ' ': moveDown(); break;
   }
 }
 
@@ -220,6 +250,7 @@ onUnmounted(() => {
 });
 
 const renderedBoard = computed(() => {
+  if (!board.value.length) return [];
   const newBoard = JSON.parse(JSON.stringify(board.value));
   if (currentPiece.value && !gameOver.value) {
     currentPiece.value.shape.forEach((row, y) => {
@@ -227,7 +258,7 @@ const renderedBoard = computed(() => {
         if (value !== 0) {
           const boardY = currentPosition.value.y + y;
           const boardX = currentPosition.value.x + x;
-          if (newBoard[boardY]) {
+          if (newBoard[boardY] && newBoard[boardY][boardX]) {
             newBoard[boardY][boardX] = { value: 1, color: currentPiece.value.color };
           }
         }
@@ -257,6 +288,8 @@ const nextPieceBoard = computed(() => {
 
 <template>
   <div class="tetris-container">
+    <router-link to="/" class="back-button">←</router-link>
+
     <div class="tetris-card">
       <div class="game-area">
         <h1 class="title">Tetris</h1>
@@ -267,7 +300,7 @@ const nextPieceBoard = computed(() => {
                 v-for="(cell, x) in row" 
                 :key="`cell-${y}-${x}`" 
                 class="cell"
-                :class="`color-${cell.color}`"
+                :class="[{ 'clearing': cell.clearing }, `color-${cell.color}`]"
                 :data-filled="cell.value === 1"
               ></div>
             </div>
@@ -277,6 +310,7 @@ const nextPieceBoard = computed(() => {
             <button @click="startGame" class="action-button">
               {{ gameOver ? 'Main Lagi' : 'Mulai Bermain' }}
             </button>
+            <p v-if="gameOver" class="restart-hint">Atau tekan 'R' untuk restart</p>
           </div>
         </div>
       </div>
@@ -294,9 +328,15 @@ const nextPieceBoard = computed(() => {
            </div>
         </div>
         
-        <div class="info-box score-box">
-          <h3>SKOR</h3>
-          <p>{{ score }}</p>
+        <div class="score-level-grid">
+            <div class="info-box score-box">
+              <h3>SKOR</h3>
+              <p>{{ score }}</p>
+            </div>
+             <div class="info-box level-box">
+              <h3>LEVEL</h3>
+              <p>{{ level }}</p>
+            </div>
         </div>
         
         <div class="info-box next-piece-box">
@@ -327,334 +367,223 @@ const nextPieceBoard = computed(() => {
         </div>
         
         <div class="info-box desktop-controls">
-         <h3>KONTROL MOBILE</h3>
-           <div class="d-pad-row">
-             <button @click="moveHorizontal(-1)" class="mobile-btn">←</button>
-             <button @click="moveDown()" class="mobile-btn">↓</button>
-             <button @click="moveHorizontal(1)" class="mobile-btn">→</button>
-           </div>
-           <div class="d-pad-row">
-             <button @click="rotate()" class="mobile-btn rotate-btn">↻ Rotasi</button>
-           </div>
+         <h3>KONTROL DESKTOP</h3>
+          <p>← Kiri | → Kanan</p>
+          <p>↓ Bawah | ↑ Rotasi</p>
+          <p>'R' untuk Restart</p>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<style>
+<style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
 :root {
-  --bg-color: #1a1a2e;
-  --card-bg: rgba(22, 22, 40, 0.75);
-  --board-bg: #161625;
+  --bg-color-deep: #10101a;
+  --bg-color-main: #1a1a2e;
+  --bg-card: #16213e;
   --text-primary: #e0e0e0;
-  --text-secondary: #a0a0c0;
-  --accent-color: #6a82fb;
-  --border-color: rgba(128, 128, 150, 0.3);
-
-  /* Tetromino Colors */
-  --color-null: transparent;
-  --color-cyan: #00e5ff;
-  --color-blue: #2979ff;
-  --color-orange: #ff9100;
-  --color-yellow: #ffea00;
-  --color-lime: #00e676;
-  --color-purple: #d500f9;
-  --color-red: #ff1744;
+  --text-secondary: #a0a0a0;
+  --border-color: rgba(224, 224, 224, 0.2);
+  --accent-color: #e94560;
+  --accent-hover: #ff6e87;
+  --shadow-glow: rgba(233, 69, 96, 0.5);
+  --clearing-color: #ffffff;
 }
 
-body {
-  background: linear-gradient(45deg, #1a1a2e, #16213e, #0f3460);
-  color: var(--text-primary);
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  padding: 2rem;
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-
-}
-</style>
-
-<style scoped>
-/* === STYLE PENENGAHAN === */
 .tetris-container {
-  display: grid;
-  place-items: center;
-  width: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1rem;
+  font-family: 'Poppins', sans-serif;
 }
 
-/* === Main Card Layout === */
+.back-button {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary, #a0a0a0);
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  z-index: 20; 
+}
+
+.back-button:hover {
+  background-color: #2c3e50;
+  color: #fff;
+}
+
 .tetris-card {
   display: flex;
-  gap: 2rem;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
-  padding: 2rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  flex-direction: column;
+  gap: 1.5rem;
   width: 100%;
-  max-width: 950px; /* Sedikit lebih lebar untuk PC */
+  max-width: 1200px;
 }
 
 .game-area {
-  flex: 2;
-  min-width: 280px;
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-.info-area {
-  flex: 1;
-  min-width: 220px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
 
-/* === Title === */
 .title {
-  font-size: 2.8rem;
-  font-weight: 700;
-  color: white;
-  margin: 0 0 1.5rem 0;
-  text-shadow: 0 0 10px var(--accent-color);
-  text-align: center;
-}
-
-/* === Game Board === */
-.board-container {
-  position: relative;
-  width: 100%;
-  max-width: 300px; /* Lebar board = 10 * 30px */
-  aspect-ratio: 10 / 20;
-}
-.board {
-  display: grid;
-  grid-template-rows: repeat(20, 1fr);
-  background: var(--board-bg);
-  border: 3px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
-  overflow: hidden;
-  height: 100%;
-}
-.row {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  width: 100%;
-}
-.cell {
-  width: 100%;
-  height: 100%;
-  background-color: var(--color-null);
-  transition: background-color 0.1s;
-}
-.cell[data-filled="true"] {
-  border-radius: 3px;
-  box-shadow: inset 0 0 5px rgba(0,0,0,0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* === Overlay === */
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 15, 25, 0.7);
-  backdrop-filter: blur(4px);
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-.overlay h2 {
-  font-size: 2rem;
-  color: white;
-  margin-bottom: 1rem;
-}
-.action-button {
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.8rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.action-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(106, 130, 251, 0.4);
-}
-
-/* === Info Boxes === */
-.info-box {
-  background: var(--board-bg);
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border-color);
-}
-.info-box h3 {
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 1px;
-  color: var(--text-secondary);
-  margin: 0 0 0.5rem 0;
-  text-transform: uppercase;
-}
-.info-box p {
   font-size: 2.5rem;
   font-weight: 700;
-  color: white;
-  margin: 0;
-  line-height: 1;
+  color: var(--accent-color);
+  text-shadow: 0 0 10px var(--shadow-glow);
+  margin-bottom: 1rem;
 }
 
-/* Next Piece Box */
-.next-piece-grid {
-  display: grid;
-  grid-template-rows: repeat(4, 1fr);
-  width: 80px; /* 4 * 20px */
-  height: 80px;
-  margin: 0.5rem auto 0;
-}
-.next-piece-grid .row {
-  grid-template-columns: repeat(4, 1fr);
-}
-
-/* Leaderboard Box */
-.leaderboard-box ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 0.95rem;
-}
-.leaderboard-box li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid var(--border-color);
-}
-.leaderboard-box li:last-child { border-bottom: none; }
-.leaderboard-box span { color: var(--text-primary); }
-.leaderboard-box strong { color: var(--accent-color); font-weight: 700; }
-.loading-text {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  text-align: center;
-  padding: 1rem 0;
-}
-
-/* === Kontrol Spesifik Perangkat (Desktop & Mobile) === */
-
-/* Kontrol Mobile (Default disembunyikan) */
-.mobile-controls {
-  display: none; /* Sembunyikan di PC */
-  text-align: center;
-}
-.d-pad-row {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-.d-pad-row:last-child { margin-bottom: 0; }
-.mobile-btn {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
+.board-container {
+  position: relative;
+  border: 4px solid var(--border-color);
   border-radius: 8px;
-  font-size: 1.5rem;
-  width: 60px; /* Sedikit lebih besar agar mudah disentuh */
-  height: 60px;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  transition: background-color 0.2s;
-  -webkit-tap-highlight-color: transparent; /* Hilangkan highlight biru saat disentuh */
-}
-.mobile-btn:active { background-color: var(--accent-color); }
-.rotate-btn {
-  width: 100%;
-  max-width: 200px;
-  font-size: 1.2rem;
+  background-color: var(--bg-color-deep);
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+  width: 100%; 
+  max-width: 40vh; 
 }
 
-/* Kontrol PC (Default ditampilkan) */
-.desktop-controls {
+.board {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+}
+
+.row { display: contents; }
+
+.cell {
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(255, 255, 255, 0.08); 
+  background-color: transparent;
+  transition: transform 0.1s ease;
+}
+
+.cell[data-filled="true"] {
+  border-radius: 2px;
+  border: none;
+}
+
+.cell.clearing {
+  background-color: var(--clearing-color);
+  animation: flash 0.3s ease-out;
+}
+@keyframes flash {
+  0%, 100% { transform: scale(1); background-color: var(--clearing-color); }
+  50% { transform: scale(1.1); background-color: white; }
+}
+
+.color-cyan { background-color: #00ffff; box-shadow: 0 0 8px #00ffff; }
+.color-orange { background-color: #ff9900; box-shadow: 0 0 8px #ff9900; }
+.color-blue { background-color: #0066ff; box-shadow: 0 0 8px #0066ff; }
+.color-yellow { background-color: #ffff00; box-shadow: 0 0 8px #ffff00; }
+.color-lime { background-color: #33ff33; box-shadow: 0 0 8px #33ff33; }
+.color-purple { background-color: #cc00cc; box-shadow: 0 0 8px #cc00cc; }
+.color-red { background-color: #ff3333; box-shadow: 0 0 8px #ff3333; }
+
+.overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+  z-index: 10;
   text-align: center;
 }
-.controls-text {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0.5rem 0 0 0;
+.overlay h2 { font-size: 2rem; margin-bottom: 1.5rem; color: #fff; }
+.restart-hint { font-size: 0.9rem; color: var(--text-secondary); margin-top: 1rem; }
+
+.action-button {
+  padding: 12px 24px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: var(--accent-color);
+  border: none; border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 15px var(--shadow-glow);
 }
-.controls-text strong {
-  color: var(--text-primary);
-  background: rgba(255,255,255,0.1);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: monospace;
-}
-
-
-/* === MEDIA QUERY UNTUK RESPONSIVE === */
-/* Terapkan gaya ini jika lebar layar 768px atau kurang (Tablet & Mobile) */
-@media (max-width: 768px) {
-  body {
-    padding: 1rem; /* Kurangi padding body di mobile */
-  }
-  .tetris-card {
-    flex-direction: column; /* Susun area game & info secara vertikal */
-    padding: 1.5rem;
-  }
-  
-  .title {
-    font-size: 2.2rem; /* Kecilkan judul */
-    margin-bottom: 1rem;
-  }
-
-  /* Tukar visibilitas kontrol */
-  .desktop-controls {
-    display: none; /* Sembunyikan info kontrol PC */
-  }
-  .mobile-controls {
-    display: block; /* Tampilkan tombol kontrol mobile */
-  }
-  
-  .game-area, .info-area {
-    min-width: 100%; /* Pastikan mengisi lebar card */
-  }
+.action-button:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-3px);
 }
 
-/* Gaya untuk layar mobile yang sangat kecil */
-@media (max-width: 360px) {
-  .tetris-card {
-    padding: 1rem;
-  }
-  .title {
-    font-size: 1.8rem;
-  }
+.info-area {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
 }
 
-/* Cell Colors (using CSS variables) */
-.color-cyan    { background-color: var(--color-cyan); }
-.color-blue    { background-color: var(--color-blue); }
-.color-orange  { background-color: var(--color-orange); }
-.color-yellow  { background-color: var(--color-yellow); }
-.color-lime    { background-color: var(--color-lime); }
-.color-purple  { background-color: var(--color-purple); }
-.color-red     { background-color: var(--color-red); }
+.info-box {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+.info-box h3 {
+  font-size: 1.1rem; font-weight: 600;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--accent-color);
+  text-align: center;
+}
+.info-box p { text-align: center; }
+
+.score-level-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+.score-box p, .level-box p { font-size: 2rem; font-weight: 700; margin: 0; }
+
+.next-piece-grid { display: grid; grid-template-columns: repeat(4, 1fr); width: 100px; margin: 0 auto; }
+.leaderboard-box ul { list-style: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
+.leaderboard-box li { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.leaderboard-box li:last-child { border-bottom: none; }
+.leaderboard-box li span { color: var(--text-secondary); }
+.leaderboard-box li strong { color: var(--text-primary); }
+.loading-text { text-align: center; color: var(--text-secondary); }
+
+.mobile-controls { display: flex; flex-direction: column; gap: 1rem; }
+.desktop-controls { display: none; }
+.d-pad-row { display: flex; justify-content: center; gap: 1rem; }
+.mobile-btn {
+  padding: 1rem; flex-grow: 1; font-size: 1.5rem; font-weight: bold;
+  background-color: rgba(255,255,255,0.1); border: 1px solid var(--border-color);
+  color: var(--text-primary); border-radius: 8px;
+  cursor: pointer; transition: background-color 0.2s ease;
+}
+.mobile-btn:active { background-color: rgba(255,255,255,0.2); }
+.rotate-btn { font-size: 1rem; }
+
+@media (min-width: 992px) {
+  .tetris-card { flex-direction: row; align-items: flex-start; }
+  .info-area { width: 300px; flex-shrink: 0; max-width: 300px; margin: 0; }
+  .mobile-controls { display: none; }
+  .desktop-controls { display: block; }
+  .board-container { margin-bottom: 0; }
+  .back-button { top: 2rem; left: 2rem;}
+}
 </style>

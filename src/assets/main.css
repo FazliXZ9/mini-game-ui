@@ -1,41 +1,30 @@
-@import './base.css';
+/* ===== ISI BARU UNTUK src/assets/main.css ===== */
 
-/* #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+/* 1. Impor Font yang Digunakan */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+:root {
+  --bg-color-deep: #10101a;
+  --bg-color-main: #1a1a2e;
+  --bg-card: #16213e;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --border-color: rgba(224, 224, 224, 0.2);
+  --accent-color: #e94560;
+  --accent-hover: #ff6e87;
+  --shadow-glow: rgba(233, 69, 96, 0.5);
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
-}
-
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
-}
-
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
-} */
-
+/* 3. Terapkan Tema ke Seluruh Halaman */
 body {
-  background-color: #f4f7f9;
-  font-family: sans-serif;
-  margin: 0;
+  margin: 0; /* Menghapus margin default browser */
+  background: var(--bg-color-main);
+  font-family: 'Poppins', sans-serif;
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* 4. Reset dasar untuk konsistensi */
+* {
+  box-sizing: border-box;
 }

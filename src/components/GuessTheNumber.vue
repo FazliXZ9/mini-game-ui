@@ -2,39 +2,32 @@
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 
-// State untuk Game
 const randomNumber = ref(Math.floor(Math.random() * 100) + 1);
 const guess = ref('');
 const message = ref('Tebak angka antara 1 dan 100');
 const attempts = ref(0);
 const gameOver = ref(false);
-// State untuk animasi feedback
 const feedbackClass = ref('');
 
-// State untuk Leaderboard
 const leaderboard = ref([]);
 const isLoading = ref(true);
 
-// Computed property untuk pesan selamat
 const successMessage = computed(() => {
   return `🎉 Selamat! Anda menebak dengan benar dalam <strong>${attempts.value}</strong> percobaan.`;
 });
 
-// Fungsi untuk memberikan feedback animasi
 function triggerFeedbackAnimation() {
   feedbackClass.value = 'shake';
   setTimeout(() => {
     feedbackClass.value = '';
-  }, 500); // Durasi animasi
+  }, 500); 
 }
 
-// Fungsi untuk mengecek tebakan
 function checkGuess() {
   if (gameOver.value || !guess.value) return;
 
   const userGuess = parseInt(guess.value);
 
-  // Validasi input
   if (isNaN(userGuess) || userGuess < 1 || userGuess > 100) {
     message.value = 'Masukkan angka antara 1 dan 100.';
     triggerFeedbackAnimation();
@@ -58,7 +51,6 @@ function checkGuess() {
   guess.value = '';
 }
 
-// Fungsi untuk memulai ulang game
 function resetGame() {
   randomNumber.value = Math.floor(Math.random() * 100) + 1;
   guess.value = '';
@@ -68,7 +60,6 @@ function resetGame() {
   feedbackClass.value = '';
 }
 
-// Fungsi untuk menyimpan skor ke API Laravel
 async function saveScore() {
   try {
     const playerName = prompt("Selamat! Masukkan nama Anda untuk leaderboard:", `Pemain-${Date.now().toString().slice(-4)}`);
@@ -86,7 +77,6 @@ async function saveScore() {
   }
 }
 
-// Fungsi untuk mengambil data leaderboard dari API Laravel
 async function fetchLeaderboard() {
   isLoading.value = true;
   try {
@@ -108,305 +98,242 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="main-container">
-    <div class="card game-card">
-      <h1>Tebak Angka</h1>
-      
-      <template v-if="!gameOver">
-        <p class="message" :class="feedbackClass" v-html="message"></p>
-        <form @submit.prevent="checkGuess">
-          <input 
-            type="number" 
-            v-model="guess" 
-            placeholder="0" 
-            class="guess-input" 
-            autofocus
-            min="1"
-            max="100"
-            :disabled="gameOver"
-          >
-          <button type="submit" class="action-button">Tebak</button>
-        </form>
-      </template>
-      
-      <div v-else class="game-over-container">
-        <p class="message success-message" v-html="message"></p>
-        <button @click="resetGame" class="action-button play-again-button">Main Lagi</button>
+  <div class="page-container">
+    <router-link to="/" class="back-button">← Kembali</router-link>
+    
+    <div class="main-content">
+      <div class="card game-card">
+        <h1>Tebak Angka</h1>
+        
+        <template v-if="!gameOver">
+          <p class="message" :class="feedbackClass" v-html="message"></p>
+          <form @submit.prevent="checkGuess">
+            <input 
+              type="number" 
+              v-model="guess" 
+              placeholder="?" 
+              class="guess-input" 
+              autofocus
+              min="1"
+              max="100"
+              :disabled="gameOver"
+            >
+            <button type="submit" class="action-button">Tebak</button>
+          </form>
+        </template>
+        
+        <div v-else class="game-over-container">
+          <p class="message success-message" v-html="message"></p>
+          <button @click="resetGame" class="action-button play-again-button">Main Lagi</button>
+        </div>
       </div>
-    </div>
 
-    <div class="card leaderboard-card">
-      <h2>🏆 Leaderboard</h2>
-      <div v-if="isLoading" class="loading-text">Memuat data...</div>
-      <ul v-else-if="leaderboard.length > 0" class="leaderboard-list">
-        <li v-for="(score, index) in leaderboard" :key="score.id">
-          <span :class="['rank', `rank-${index + 1}`]">#{{ index + 1 }}</span>
-          <span class="player">{{ score.player_name }}</span>
-          <span class="score">{{ score.score }} <span class="tries">langkah</span></span>
-        </li>
-      </ul>
-      <div v-else class="loading-text">Belum ada skor tercatat. Jadilah yang pertama!</div>
+      <div class="card leaderboard-card">
+        <h2>🏆 Leaderboard</h2>
+        <p class="leaderboard-subtitle">Skor terendah lebih baik!</p>
+        <div v-if="isLoading" class="loading-text">Memuat data...</div>
+        <ul v-else-if="leaderboard.length > 0" class="leaderboard-list">
+          <li v-for="(score, index) in leaderboard" :key="score.id">
+            <span :class="['rank', `rank-${index + 1}`]">#{{ index + 1 }}</span>
+            <span class="player">{{ score.player_name }}</span>
+            <span class="score">{{ score.score }} <span class="tries">percobaan</span></span>
+          </li>
+        </ul>
+        <div v-else class="loading-text">Belum ada skor tercatat. Jadilah yang pertama!</div>
+      </div>
     </div>
   </div>
 </template>
 
-<style>
-/* Font dan Body */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-
-/* PERBAIKAN UTAMA ADA DI SINI */
-body {
-  display: flex; /* Gunakan flexbox untuk centering */
-  justify-content: center; /* Pusatkan secara horizontal */
-  align-items: flex-start; /* Ratakan dari atas */
-  min-height: 100vh; /* Pastikan body setidaknya setinggi layar */
-  background-color: #e9f0f8;
-  background-image: linear-gradient(to top right, #e9f0f8, #d8e2ef);
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  padding: 2rem 1rem; /* Beri padding atas-bawah dan samping */
-  box-sizing: border-box;
-}
-
-/* Kita tidak perlu lagi styling khusus di #app */
-#app {
-  width: 100%;
-  /* max-width dari .main-container akan membatasi lebar */
-}
-</style>
-
 <style scoped>
-/* === ANIMASI === */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes shake {
-  10%, 90% { transform: translateX(-2px); }
-  20%, 80% { transform: translateX(4px); }
-  30%, 50%, 70% { transform: translateX(-6px); }
-  40%, 60% { transform: translateX(6px); }
-}
-
-.shake {
-  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-}
-
-/* === LAYOUT UTAMA === */
-.main-container {
+.page-container {
+  position: relative;
   display: flex;
-  /* (Mobile-first) defaultnya kolom */
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  font-family: 'Poppins', sans-serif;
+  align-items: flex-start;
+  padding-top: 6rem; 
+}
+
+.back-button {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary, #a0a0a0);
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+}
+.back-button:hover {
+  background-color: #2c3e50;
+  color: #fff;
+}
+
+.main-content {
+  display: flex;
   flex-direction: column;
-  align-items: center; /* Pusatkan item di mobile */
   gap: 2rem;
   width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
+  max-width: 1000px;
 }
 
-/* === CARD STYLING === */
 .card {
-  width: 100%;
-  max-width: 500px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 20px;
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 16px;
   padding: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 32px rgba(45, 75, 128, 0.1);
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-.game-card {
-  animation-delay: 0.1s;
-}
-
-.leaderboard-card {
-  animation-delay: 0.2s;
+  color: var(--text-primary, #e0e0e0);
 }
 
 h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  margin: 0 0 0.5rem 0;
-  background: linear-gradient(45deg, #2c3e50, #3498db);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--accent-color, #e94560);
+  margin: 0 0 1rem 0;
 }
 
 .message {
-  color: #5a6a7a;
-  margin: 0 0 2rem 0;
-  min-height: 48px; /* Beri ruang agar layout tidak "loncat" */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 500;
-  transition: color 0.3s ease;
+  font-size: 1.2rem;
+  color: var(--text-secondary, #a0a0a0);
+  margin: 1.5rem 0;
+  min-height: 1.5em;
 }
 
 .success-message {
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
+  color: #33ff33;
+  font-weight: 600;
 }
 
-h2 {
-  font-size: 1.8rem;
-  color: #34495e;
-  margin: 0 0 1.5rem 0;
-}
-
-/* === FORM & BUTTON === */
 form {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .guess-input {
-  width: 100px;
-  height: 80px;
-  background: #f0f4f8;
-  border: 2px solid transparent;
-  color: #34495e;
+  width: 120px;
+  padding: 1rem;
   font-size: 3rem;
   font-weight: 700;
   text-align: center;
-  border-radius: 15px;
-  transition: all 0.3s ease;
-  -moz-appearance: textfield; /* Firefox */
+  background-color: var(--bg-color-deep, #10101a);
+  border: 2px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 12px;
+  color: #fff;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.guess-input:focus {
+  border-color: var(--accent-color, #e94560);
+  box-shadow: 0 0 15px var(--shadow-glow, rgba(233, 69, 96, 0.5));
 }
 .guess-input::-webkit-outer-spin-button,
 .guess-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-.guess-input:focus {
-  outline: none;
-  border-color: #3498db;
-  background: #fff;
-  box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+.guess-input[type=number] {
+  -moz-appearance: textfield;
 }
 
 .action-button {
-  width: 180px;
-  padding: 1rem 1.5rem;
-  border: none;
-  border-radius: 50px; /* Lebih modern */
-  background-image: linear-gradient(45deg, #3498db 0%, #2980b9 100%);
-  color: white;
-  font-size: 1.1rem;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
   font-weight: 600;
+  color: #fff;
+  background-color: var(--accent-color, #e94560);
+  border: none;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
+  transition: background-color 0.2s ease;
 }
 .action-button:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.3);
-}
-.action-button:active {
-  transform: translateY(-1px);
+  background-color: var(--accent-hover, #ff6e87);
 }
 
 .game-over-container {
-  animation: fadeIn 0.5s ease;
+  margin-top: 1.5rem;
 }
-
 .play-again-button {
-   margin-top: 1rem;
+  margin-top: 1rem;
 }
 
-/* === LEADERBOARD LIST === */
-.loading-text {
-  color: #7f8c8d;
-  font-style: italic;
+.shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
+.leaderboard-card h2 {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+  color: var(--accent-color, #e94560);
+}
+.leaderboard-subtitle {
+  font-size: 0.9rem;
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary, #a0a0a0);
+}
 .leaderboard-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 .leaderboard-list li {
   display: flex;
   align-items: center;
-  padding: 0.8rem 1.2rem;
-  background-color: rgba(236, 240, 241, 0.6);
-  border-radius: 12px;
-  border: 1px solid transparent;
-  transition: all 0.3s ease;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  font-size: 1.1rem;
 }
-.leaderboard-list li:hover {
-  transform: scale(1.02);
-  border-color: #bdc3c7;
+.leaderboard-list li:last-child {
+  border-bottom: none;
 }
-
-/* Medali untuk Top 3 */
-li .rank-1::before { content: '🥇 '; }
-li .rank-2::before { content: '🥈 '; }
-li .rank-3::before { content: '🥉 '; }
-
-.rank {
-  font-weight: 700;
-  color: #34495e;
-  flex-basis: 20%;
-  text-align: left;
-}
+.rank { font-weight: 700; min-width: 40px; }
+.rank-1 { color: #ffd700; }
+.rank-2 { color: #c0c0c0; }
+.rank-3 { color: #cd7f32; }
 .player {
-  color: #2c3e50;
-  font-weight: 500;
-  flex-basis: 55%;
+  flex-grow: 1;
   text-align: left;
-  white-space: nowrap;
+  padding: 0 1rem;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-right: 1rem;
+  white-space: nowrap;
 }
-.score {
-  flex-basis: 25%;
-  text-align: right;
-  font-weight: 700;
-  color: #3498db;
-}
-.tries {
-  font-size: 0.8rem;
-  color: #95a5a6;
-  font-weight: 400;
-}
+.score { font-weight: 600; color: #fff; }
+.tries { font-size: 0.8rem; color: var(--text-secondary, #a0a0a0); }
+.loading-text { color: var(--text-secondary, #a0a0a0); }
 
-/* === MEDIA QUERY UNTUK DESKTOP === */
-@media (min-width: 768px) {
-  body {
-    padding: 2rem;
+@media (min-width: 992px) {
+  .page-container {
+    align-items: center;
+    padding-top: 1.5rem;
   }
-  .main-container {
-    /* Ubah menjadi baris di layar lebar */
+  .main-content {
     flex-direction: row;
-    align-items: flex-start; /* Ratakan ke atas */
-    justify-content: center;
+    align-items: flex-start;
   }
-  .card {
-    padding: 2.5rem;
+  .game-card {
+    flex-basis: 50%;
   }
-  .game-card, .leaderboard-card {
-    /* Atur agar fleksibel tapi punya basis ukuran */
-    flex: 1 1 400px;
-  }
-  form {
-    flex-direction: row;
-    justify-content: center;
-    gap: 1rem;
-  }
-  .action-button {
-    width: auto;
+  .leaderboard-card {
+    flex-basis: 50%;
   }
 }
 </style>

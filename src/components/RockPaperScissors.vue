@@ -6,6 +6,7 @@ const playerChoice = ref(null);
 const computerChoice = ref(null);
 const result = ref('Pilih salah satu untuk memulai!');
 const score = ref({ wins: 0, losses: 0, ties: 0 });
+const isAnimating = ref(false);
 
 const choiceIcons = {
   batu: '✊',
@@ -14,23 +15,33 @@ const choiceIcons = {
 };
 
 function play(choice) {
-  playerChoice.value = choice;
-  computerChoice.value = choices[Math.floor(Math.random() * choices.length)];
+  if (isAnimating.value) return;
 
-  if (playerChoice.value === computerChoice.value) {
-    result.value = "Hasilnya Seri!";
-    score.value.ties++;
-  } else if (
-    (playerChoice.value === 'batu' && computerChoice.value === 'gunting') ||
-    (playerChoice.value === 'gunting' && computerChoice.value === 'kertas') ||
-    (playerChoice.value === 'kertas' && computerChoice.value === 'batu')
-  ) {
-    result.value = "Anda Menang! 🎉";
-    score.value.wins++;
-  } else {
-    result.value = "Anda Kalah! 😥";
-    score.value.losses++;
-  }
+  isAnimating.value = true;
+  playerChoice.value = null;
+  computerChoice.value = null;
+  result.value = '...';
+
+  setTimeout(() => {
+    playerChoice.value = choice;
+    computerChoice.value = choices[Math.floor(Math.random() * choices.length)];
+
+    if (playerChoice.value === computerChoice.value) {
+      result.value = "Hasilnya Seri!";
+      score.value.ties++;
+    } else if (
+      (playerChoice.value === 'batu' && computerChoice.value === 'gunting') ||
+      (playerChoice.value === 'gunting' && computerChoice.value === 'kertas') ||
+      (playerChoice.value === 'kertas' && computerChoice.value === 'batu')
+    ) {
+      result.value = "Anda Menang! 🎉";
+      score.value.wins++;
+    } else {
+      result.value = "Anda Kalah! 😥";
+      score.value.losses++;
+    }
+    isAnimating.value = false;
+  }, 500); 
 }
 
 function resetGame() {
@@ -49,227 +60,225 @@ const resultClass = computed(() => {
 </script>
 
 <template>
-  <div class="card rps-card">
-    <h1>Batu Gunting Kertas</h1>
+  <div class="page-container">
+    <router-link to="/" class="back-button">← Kembali</router-link>
 
-    <div class="score-board">
-      <div>🏆 Menang: <strong>{{ score.wins }}</strong></div>
-      <div>😐 Seri: <strong>{{ score.ties }}</strong></div>
-      <div>❌ Kalah: <strong>{{ score.losses }}</strong></div>
-    </div>
+    <div class="card rps-card">
+      <h1>Batu Gunting Kertas</h1>
 
-    <div class="choices">
-      <div class="choice player">
-        <span class="label">Anda</span>
-        <div class="icon" :class="{ 'placeholder': !playerChoice }">
-          {{ playerChoice ? choiceIcons[playerChoice] : '?' }}
+      <div class="score-board">
+        <div>🏆 Menang: <strong>{{ score.wins }}</strong></div>
+        <div>😐 Seri: <strong>{{ score.ties }}</strong></div>
+        <div>❌ Kalah: <strong>{{ score.losses }}</strong></div>
+      </div>
+
+      <div class="choices">
+        <div class="choice player">
+          <span class="label">Anda</span>
+          <div class="icon" :class="{ 'placeholder': !playerChoice, 'animating': isAnimating }">
+            {{ playerChoice ? choiceIcons[playerChoice] : '?' }}
+          </div>
+        </div>
+        <div class="vs">vs</div>
+        <div class="choice computer">
+          <span class="label">Komputer</span>
+          <div class="icon" :class="{ 'placeholder': !computerChoice, 'animating': isAnimating }">
+            {{ computerChoice ? choiceIcons[computerChoice] : '?' }}
+          </div>
         </div>
       </div>
-      <div class="vs">vs</div>
-      <div class="choice computer">
-        <span class="label">Komputer</span>
-        <div class="icon" :class="{ 'placeholder': !computerChoice }">
-          {{ computerChoice ? choiceIcons[computerChoice] : '?' }}
-        </div>
+
+      <p class="result" :class="resultClass">{{ result }}</p>
+
+      <div class="buttons">
+        <button v-for="choice in choices" :key="choice" @click="play(choice)" class="choice-button" :title="choice">
+          {{ choiceIcons[choice] }}
+        </button>
       </div>
+
+      <button @click="resetGame" class="reset-button">Reset Skor</button>
     </div>
-
-    <p class="result" :class="resultClass">{{ result }}</p>
-
-    <div class="buttons">
-      <button v-for="choice in choices" :key="choice" @click="play(choice)" class="choice-button" :title="choice">
-        {{ choiceIcons[choice] }}
-      </button>
-    </div>
-
-    <button @click="resetGame" class="reset-button">Reset Skor</button>
   </div>
 </template>
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-
-#app {
-  display: flex;
-  justify-content: center;
-  align-items: center; /* Center Vertically */
-  width: 100%;
-  min-height: 100vh;
-  padding: 1rem;
-}
-
-body {
-  background-color: #e0eafc;
-  background-image: linear-gradient(to top right, #e0eafc, #cfdef3);
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  box-sizing: border-box;
-}
-</style>
-
 <style scoped>
-/* Card Style Utama (Glassmorphism) */
-.card {
-  width: 100%;
-  max-width: 450px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-radius: 25px;
-  padding: 2rem;
+
+.page-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem;
+  font-family: 'Poppins', sans-serif;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 10px 40px rgba(45, 75, 128, 0.15);
-  color: #2c3e50;
+  color: var(--text-primary, #e0e0e0);
+  align-items: flex-start;
+  padding-top: 6rem;
 }
 
-/* Judul dengan Gradient */
+.back-button {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary, #a0a0a0);
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+}
+.back-button:hover {
+  background-color: #2c3e50;
+  color: #fff;
+}
+
+.rps-card {
+  width: 100%;
+  max-width: 600px;
+  background-color: rgba(15, 23, 42, 0.5); 
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
 h1 {
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   font-weight: 700;
-  margin-top: 0;
-  margin-bottom: 1.5rem;
-  background: linear-gradient(45deg, #2c3e50, #3498db);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent;
+  color: var(--accent-color, #e94560);
+  margin-bottom: 1rem;
 }
 
-/* Papan Skor */
 .score-board {
   display: flex;
   justify-content: space-around;
-  background-color: rgba(228, 235, 245, 0.7);
+  background-color: var(--bg-card, #16213e);
+  padding: 1rem;
   border-radius: 12px;
-  padding: 0.75rem 1rem;
   margin-bottom: 2rem;
-  font-weight: 500;
-  color: #34495e;
+  font-size: 1rem;
 }
 .score-board strong {
-  font-weight: 700;
-  color: #2c3e50;
+  color: #fff;
+  font-size: 1.2rem;
 }
 
-/* Area Pilihan Pemain & Komputer */
 .choices {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
 }
-
-.choice .label {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #7f8c8d;
-  margin-bottom: 0.5rem;
-  display: block;
-}
-
-.choice .icon {
-  font-size: 4rem;
-  line-height: 1;
-  width: 100px;
-  height: 100px;
+.choice {
   display: flex;
+  flex-direction: column;
   align-items: center;
+}
+.label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary, #a0a0a0);
+}
+.icon {
+  width: 120px;
+  height: 120px;
+  display: flex;
   justify-content: center;
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  align-items: center;
+  border: 4px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 50%;
+  font-size: 4rem;
   transition: all 0.3s ease;
 }
-
-.choice .icon.placeholder {
-  background: rgba(228, 235, 245, 0.7);
-  color: #95a5a6;
-  box-shadow: none;
+.icon.placeholder {
+  color: var(--text-secondary, #a0a0a0);
+  border-style: dashed;
 }
-
 .vs {
   font-size: 2rem;
-  font-weight: 700;
-  color: #bdc3c7;
+  font-weight: bold;
+  color: var(--accent-color, #e94560);
 }
 
-/* Teks Hasil Pertandingan */
+.icon.animating {
+  animation: shake 0.5s ease;
+}
+@keyframes shake {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-10px); }
+  75% { transform: translateY(10px); }
+}
+
 .result {
-  min-height: 28px;
   font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 2rem;
+  height: 2em; 
+  margin-bottom: 1.5rem;
   transition: color 0.3s ease;
 }
+.result.win { color: #33ff33; }
+.result.loss { color: #ff3333; }
+.result.tie { color: #facc15; }
 
-.result.win { color: #27ae60; }
-.result.loss { color: #e74c3c; }
-.result.tie { color: #34495e; }
-
-/* Tombol Pilihan (Batu, Gunting, Kertas) */
 .buttons {
   display: flex;
   justify-content: center;
   gap: 1rem;
   margin-bottom: 2rem;
 }
-
 .choice-button {
-  background: #fff;
-  border: none;
-  border-radius: 50%;
   width: 80px;
   height: 80px;
   font-size: 2.5rem;
+  border: 2px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 50%;
+  background-color: var(--bg-card, #16213e);
+  color: #fff;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
-  color: #3498db;
 }
-
 .choice-button:hover {
-  background-image: linear-gradient(45deg, #3498db 0%, #2980b9 100%);
-  color: #fff;
-  transform: translateY(-5px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
+  background-color: #2c3e50;
+  transform: translateY(-5px);
+  border-color: var(--accent-color, #e94560);
 }
 
-/* Tombol Reset */
 .reset-button {
-  background-color: transparent;
-  border: 2px solid #bdc3c7;
-  color: #7f8c8d;
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
   font-weight: 600;
+  color: var(--text-secondary, #a0a0a0);
+  background-color: transparent;
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 8px;
   cursor: pointer;
-  padding: 0.5rem 1rem;
-  border-radius: 10px;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
-
 .reset-button:hover {
-  background-color: #34495e;
-  border-color: #34495e;
+  background-color: var(--bg-card, #16213e);
   color: #fff;
 }
 
-@media (max-width: 400px) {
-  .card {
-    padding: 1.5rem;
-  }
-  .choice .icon {
-    width: 80px;
-    height: 80px;
-    font-size: 3rem;
-  }
-  .choice-button {
-    width: 70px;
-    height: 70px;
-    font-size: 2rem;
+@media (max-width: 480px) {
+  .rps-card { padding: 1.5rem; }
+  h1 { font-size: 2rem; }
+  .score-board { flex-direction: column; gap: 0.5rem; }
+  .icon { width: 80px; height: 80px; font-size: 2.5rem; }
+  .vs { font-size: 1.5rem; }
+  .choice-button { width: 60px; height: 60px; font-size: 2rem; }
+}
+
+@media (min-width: 992px) {
+  .page-container {
+    align-items: center;
+    padding-top: 1.5rem;
   }
 }
 </style>

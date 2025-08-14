@@ -51,160 +51,160 @@ function resetGame() {
 </script>
 
 <template>
-  <div class="card ttt-card">
-    <h1>Tic-Tac-Toe</h1>
-    <p class="status">
-      {{ statusMessage }}
-    </p>
+  <div class="page-container">
+    <router-link to="/" class="back-button">← Kembali</router-link>
 
-    <div class="board">
-      <div
-        v-for="(square, index) in board"
-        :key="index"
-        class="square"
-        @click="makeMove(index)"
-        :class="{
-          'x': square === 'X',
-          'o': square === 'O'
-        }"
-      >
-        <span>{{ square }}</span>
+    <div class="card ttt-card">
+      <h1>Tic-Tac-Toe</h1>
+      <p class="status">
+        {{ statusMessage }}
+      </p>
+
+      <div class="board">
+        <div
+          v-for="(square, index) in board"
+          :key="index"
+          class="square"
+          @click="makeMove(index)"
+          :class="{
+            'x': square === 'X',
+            'o': square === 'O'
+          }"
+        >
+          <span>{{ square }}</span>
+        </div>
       </div>
-    </div>
 
-    <button @click="resetGame" class="reset-button">Mulai Ulang</button>
+      <button @click="resetGame" class="reset-button">Mulai Ulang</button>
+    </div>
   </div>
 </template>
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-#app {
+<style scoped>
+.page-container {
+  position: relative;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  width: 100%;
+  justify-content: center;
   min-height: 100vh;
   padding: 1rem;
-}
-
-body {
-  background-color: #e4eefc;
-  background-image: linear-gradient(to top right, #e4eefc, #d3e3fd);
   font-family: 'Poppins', sans-serif;
-  margin: 0;
-}
-</style>
-
-<style scoped>
-.card {
-  width: 100%;
-  max-width: 340px;
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border-radius: 30px;
-  padding: 2.5rem 2rem;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  color: #3f5177;
+}
+
+.back-button {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary, #a0a0a0);
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.back-button:hover {
+  background-color: #2c3e50;
+  color: #fff;
+}
+
+.ttt-card {
+  width: 100%;
+  max-width: 500px; 
+  padding: 2rem;
 }
 
 h1 {
-  font-size: 2.2rem;
+  font-size: clamp(2.5rem, 8vw, 3.5rem);
   font-weight: 700;
-  margin-top: 0;
   margin-bottom: 0.5rem;
-  color: #3f5177;
+  color: var(--accent-color, #e94560);
 }
 
 .status {
-  min-height: 28px;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #6b7a99;
+  font-size: clamp(1rem, 4vw, 1.25rem);
+  font-weight: 600;
   margin-bottom: 2rem;
+  height: 1.5em;
+  color: var(--text-secondary, #a0a0a0);
 }
 
 .board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin-bottom: 2.5rem;
+  gap: 1rem;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 2rem auto;
 }
 
 .square {
   aspect-ratio: 1 / 1;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 16px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 3.5rem;
-  font-weight: 700;
+  background-color: var(--bg-card, #16213e);
+  border: 2px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  line-height: 1;
+  transition: all 0.2s ease-in-out;
 }
 
 .square:hover {
-  background: rgba(255, 255, 255, 0.8);
-  transform: scale(1.05);
+  background-color: #2c3e50;
+  border-color: var(--accent-color, #e94560);
 }
 
-.square.x { 
-  color: #4a6dcc;
-  text-shadow: 0 0 10px rgba(74, 109, 204, 0.3);
+.square span {
+  font-size: clamp(3rem, 15vw, 5rem);
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+  transform: scale(0.5);
+  opacity: 0;
+  animation: appear 0.3s forwards;
 }
-.square.o { 
-  color: #ff6b6b;
-  text-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+
+.square.x span { color: #33ff33; }
+.square.o span { color: #00ffff; }
+
+@keyframes appear {
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .reset-button {
-  background-color: #4a6dcc;
-  border: none;
-  color: white;
-  width: 100%;
-  padding: 1rem;
-  border-radius: 16px;
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  font-size: 1rem;
+  color: #fff;
+  background-color: var(--accent-color, #e94560);
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(74, 109, 204, 0.3);
+  transition: background-color 0.2s ease;
 }
 
 .reset-button:hover {
-  background-color: #3f5db0;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(74, 109, 204, 0.4);
+  background-color: var(--accent-hover, #ff6e87);
 }
 
-@media (max-width: 520px) {
-  .card {
-    /* Ini adalah baris kunci untuk perbaikan */
-    max-width: none;
-    
-    padding: 2rem 1.5rem;
+@media (max-width: 480px) {
+  .back-button {
+    top: 1rem;
+    left: 1rem;
+    padding: 0.5rem 0.8rem;
   }
-  h1 {
-    font-size: 2rem;
-  }
-  .board {
-    gap: 10px;
-  }
-  .square {
-    font-size: 3rem;
-    border-radius: 12px;
+  .ttt-card {
+    padding: 1rem;
   }
 }
+
 </style>
