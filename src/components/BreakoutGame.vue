@@ -2,8 +2,6 @@
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
 import axios from 'axios';
 
-// --- (Tidak ada perubahan pada bagian <script>, isinya sama seperti sebelumnya) ---
-
 const VIEWBOX_WIDTH = 800;
 const VIEWBOX_HEIGHT = 600;
 const score = ref(0);
@@ -397,18 +395,17 @@ h1 {
   border: 2px solid #fff;
 }
 
-/* --- PERBAIKAN CSS AREA INFO --- */
 .info-area {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2rem; /* Jarak antar kartu */
+  gap: 2rem; 
 }
 
 .info-box {
   background-color: var(--bg-card, #16213e);
   border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
-  border-radius: 12px; /* Disesuaikan dengan .desktop-controls */
+  border-radius: 12px;
   padding: 1rem;
 }
 
@@ -420,7 +417,7 @@ h1 {
 }
 
 .leaderboard-box h3 {
-  margin-top: 0; /* Hapus margin atas khusus untuk judul leaderboard */
+  margin-top: 0; 
 }
 
 .leaderboard-list {

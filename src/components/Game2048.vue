@@ -2,21 +2,14 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import axios from 'axios';
 
-// --- Konfigurasi Game ---
 const GRID_SIZE = 4;
-
-// --- State Game ---
 const board = ref([]);
 const score = ref(0);
 const isGameOver = ref(false);
 const gameWon = ref(false);
-
-// --- State Leaderboard ---
 const leaderboard = ref([]);
 const isLoading = ref(true);
 const medals = ['🥇', '🥈', '🥉'];
-
-// --- Fungsi Inisialisasi ---
 
 function createEmptyBoard() {
   return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
@@ -31,8 +24,6 @@ function startGame() {
   addRandomTile();
   fetchLeaderboard();
 }
-
-// --- Logika Game ---
 
 function addRandomTile() {
   const emptyTiles = [];
@@ -124,10 +115,9 @@ function checkGameOver() {
     }
   }
   isGameOver.value = true;
-  saveScore(); // Simpan skor saat game over
+  saveScore();
 }
 
-// --- Fungsi Leaderboard ---
 async function saveScore() {
   if (score.value === 0) return;
   try {
@@ -152,7 +142,6 @@ async function fetchLeaderboard() {
   finally { isLoading.value = false; }
 }
 
-// --- Kontrol Keyboard ---
 function handleKeyDown(event) {
   if (isGameOver.value) return;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
@@ -182,247 +171,208 @@ const tileColorClass = (value) => {
 </script>
 
 <template>
-  <div class="card game-2048-card">
-    <div class="game-main">
-      <div class="header">
-        <h1>2048</h1>
-        <div class="score-container">
-          <div class="score-box">
-            <span class="label">SKOR</span>
-            <span class="value">{{ score }}</span>
+  <div class="page-container">
+    <router-link to="/" class="back-button">← Kembali</router-link>
+
+    <div class="game-2048-card">
+      <div class="game-main">
+        <div class="header">
+          <h1>2048</h1>
+          <div class="score-container">
+            <div class="score-box">
+              <span class="label">SKOR</span>
+              <span class="value">{{ score }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="board-container">
+          <div class="board">
+            <div v-for="(row, r) in board" :key="r" class="board-row">
+              <div v-for="(tile, c) in row" :key="c" class="tile-container">
+                <div class="tile" :class="tileColorClass(tile)">
+                  {{ tile > 0 ? tile : '' }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-if="isGameOver || gameWon" class="overlay">
+            <h2>{{ gameWon ? 'Anda Menang!' : 'Game Over!' }}</h2>
+            <button @click="startGame" class="reset-button">Main Lagi</button>
+          </div>
+        </div>
+
+        <div class="controls-info">Gunakan tombol panah untuk bermain.</div>
+
+        <div class="mobile-controls">
+          <div class="d-pad">
+            <div class="d-pad-cell"></div>
+            <button @click="move('up')" class="control-btn">↑</button>
+            <div class="d-pad-cell"></div>
+            <button @click="move('left')" class="control-btn">←</button>
+            <div class="d-pad-cell center"></div>
+            <button @click="move('right')" class="control-btn">→</button>
+            <div class="d-pad-cell"></div>
+            <button @click="move('down')" class="control-btn">↓</button>
+            <div class="d-pad-cell"></div>
           </div>
         </div>
       </div>
       
-      <div class="board-container">
-        <div class="board">
-          <div v-for="(row, r) in board" :key="r" class="board-row">
-            <div v-for="(tile, c) in row" :key="c" class="tile-container">
-              <div class="tile" :class="tileColorClass(tile)">
-                {{ tile > 0 ? tile : '' }}
-              </div>
+      <div class="leaderboard-section">
+        <h3>🏆 Leaderboard</h3>
+        <div v-if="isLoading" class="loading-text">Memuat...</div>
+        <ul v-else-if="leaderboard.length > 0" class="leaderboard-list">
+          <li v-for="(item, index) in leaderboard" :key="item.id" class="leaderboard-item">
+            <div class="player-info">
+              <span class="rank">{{ medals[index] || `#${index + 1}` }}</span>
+              <span class="player-name">{{ item.player_name }}</span>
             </div>
-          </div>
-        </div>
-        <div v-if="isGameOver || gameWon" class="overlay">
-          <h2>{{ gameWon ? 'Anda Menang!' : 'Game Over!' }}</h2>
-          <button @click="startGame" class="reset-button">Main Lagi</button>
-        </div>
+            <strong class="score-value">{{ item.score }}</strong>
+          </li>
+        </ul>
+        <div v-else class="loading-text">Belum ada skor.</div>
       </div>
-
-      <div class="controls-info">Gunakan tombol panah untuk bermain.</div>
-
-      <div class="mobile-controls">
-        <div class="d-pad">
-          <div class="d-pad-cell"></div>
-          <button @click="move('up')" class="control-btn">↑</button>
-          <div class="d-pad-cell"></div>
-          <button @click="move('left')" class="control-btn">←</button>
-          <div class="d-pad-cell center"></div>
-          <button @click="move('right')" class="control-btn">→</button>
-          <div class="d-pad-cell"></div>
-          <button @click="move('down')" class="control-btn">↓</button>
-          <div class="d-pad-cell"></div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="leaderboard-section">
-      <h3>🏆 Leaderboard</h3>
-      <div v-if="isLoading" class="loading-text">Memuat...</div>
-      <ul v-else-if="leaderboard.length > 0" class="leaderboard-list">
-        <li v-for="(item, index) in leaderboard" :key="item.id" class="leaderboard-item">
-          <div class="player-info">
-            <span class="rank">{{ medals[index] || `#${index + 1}` }}</span>
-            <span class="player-name">{{ item.player_name }}</span>
-          </div>
-          <strong class="score-value">{{ item.score }}</strong>
-        </li>
-      </ul>
-      <div v-else class="loading-text">Belum ada skor.</div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.card {
-  width: 100%;
-  max-width: 450px;
-  background: #faf8ef;
-  border-radius: 16px;
-  padding: 1.5rem;
-  border: 1px solid #e8e8e8;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  font-family: 'Poppins', sans-serif;
-  color: #776e65;
+.page-container {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 6rem 1.5rem 1.5rem 1.5rem;
+  font-family: 'Poppins', sans-serif;
+  color: var(--text-primary, #e0e0e0);
 }
 
-.game-main { flex: 1; }
+.back-button {
+  position: absolute; top: 1.5rem; left: 1.5rem;
+  padding: 0.6rem 1.2rem; font-size: 0.9rem; font-weight: 600;
+  color: var(--text-secondary, #a0a0a0);
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 8px; text-decoration: none;
+  transition: all 0.2s ease-in-out; z-index: 10;
+}
+.back-button:hover { background-color: #2c3e50; color: #fff; }
+
+.game-2048-card {
+  display: flex; flex-direction: column; gap: 2rem;
+  width: 100%; max-width: 1000px;
+}
+.game-main {
+  flex: 2;
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 16px; padding: 2rem;
+}
+.leaderboard-section {
+  flex: 1;
+  background-color: var(--bg-card, #16213e);
+  border: 1px solid var(--border-color, rgba(224, 224, 224, 0.2));
+  border-radius: 16px; padding: 2rem;
+}
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;
 }
-
-h1 {
-  font-size: 2.8rem;
-  font-weight: 900;
-  color: #776e65;
-}
-
+h1 { font-size: 3rem; font-weight: 700; color: #fff; margin: 0;}
 .score-box {
-  background-color: #bbada0;
-  padding: 0.5rem 1.5rem;
-  border-radius: 8px;
-  text-align: center;
-  color: white;
+  background-color: var(--bg-color-deep, #10101a);
+  padding: 0.8rem 1.5rem; border-radius: 8px;
+  display: flex; flex-direction: column; text-align: center;
 }
-.score-box .label { font-size: 0.8rem; font-weight: 600; }
-.score-box .value { font-size: 1.8rem; font-weight: 700; }
+.score-box .label { font-size: 0.9rem; color: var(--text-secondary, #a0a0a0); }
+.score-box .value { font-size: 1.8rem; font-weight: 700; color: #fff; }
 
-.board-container {
-  position: relative;
-}
-
+.board-container { position: relative; }
 .board {
-  display: grid;
-  grid-template-rows: repeat(4, 1fr);
-  gap: 15px;
-  background: #bbada0;
+  background-color: #3d3a50;
   border-radius: 8px;
-  padding: 15px;
-  aspect-ratio: 1 / 1;
-}
-
-.board-row {
+  padding: 10px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-}
-
-.tile-container {
-  background: rgba(238, 228, 218, 0.35);
-  border-radius: 4px;
-}
-
-.tile {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-weight: bold;
-  border-radius: 4px;
-  font-size: clamp(1.2rem, 5vw, 2.2rem);
-}
-
-.overlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(255, 255, 255, 0.7);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  border-radius: 8px;
-  text-align: center;
-}
-.overlay h2 {
-  font-size: clamp(2rem, 12vw, 3rem); 
-  color: #776e65;
-}
-.reset-button {
-  background: #8f7a66;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 0.8rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 1rem;
-}
-
-.controls-info {
-  text-align: center;
-  margin-top: 1.5rem;
-  color: #776e65;
-  font-weight: 600;
-}
-
-.mobile-controls {
-  display: none;
-  margin-top: 1.5rem;
-}
-.d-pad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  max-width: 240px;
+  gap: 10px;
+  aspect-ratio: 1/1;
+  max-width: 500px;
   margin: 0 auto;
 }
-.control-btn {
-  background-color: #cdc1b4;
-  border: none;
-  border-radius: 8px;
-  font-size: 2rem;
+.tile-container {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+.tile {
+  width: 100%; height: 100%;
+  display: flex; justify-content: center; align-items: center;
   font-weight: bold;
-  color: #776e65;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.control-btn:active {
-  background-color: #bbada0;
+  border-radius: 6px;
+  transition: all 0.2s ease;
 }
 
-.leaderboard-section { text-align: left; }
-.leaderboard-section h3 { font-size: 1.5rem; font-weight: 600; margin-top: 0; margin-bottom: 1.5rem; text-align: center; color: #34495e; }
-.leaderboard-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
-.leaderboard-item {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 0.75rem 1rem; background: #f9fafb; border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06); border: 1px solid #f0f0f0;
-}
-.player-info { display: flex; align-items: center; gap: 0.75rem; }
-.rank { font-size: 1rem; font-weight: 600; color: #7f8c8d; width: 35px; text-align: center; }
-.player-name { font-weight: 600; color: #2c3e50; font-size: 0.9rem; }
-.score-value { font-weight: 700; font-size: 1.1rem; color: #3498db; }
-.loading-text { font-size: 0.9rem; color: #7f8c8d; text-align: center; padding: 2rem 0; }
+.tile-0 { background: transparent; }
+.tile-2 { background-color: #eee4da; color: #776e65; font-size: 2.5em; }
+.tile-4 { background-color: #ede0c8; color: #776e65; font-size: 2.5em; }
+.tile-8 { background-color: #f2b179; color: #f9f6f2; font-size: 2.5em; }
+.tile-16 { background-color: #f59563; color: #f9f6f2; font-size: 2.2em; }
+.tile-32 { background-color: #f67c5f; color: #f9f6f2; font-size: 2.2em; }
+.tile-64 { background-color: #f65e3b; color: #f9f6f2; font-size: 2.2em; }
+.tile-128 { background-color: #edcf72; color: #f9f6f2; font-size: 1.8em; box-shadow: 0 0 10px #edcf72; }
+.tile-256 { background-color: #edcc61; color: #f9f6f2; font-size: 1.8em; box-shadow: 0 0 10px #edcc61; }
+.tile-512 { background-color: #edc850; color: #f9f6f2; font-size: 1.8em; box-shadow: 0 0 10px #edc850; }
+.tile-1024 { background-color: #edc53f; color: #f9f6f2; font-size: 1.4em; box-shadow: 0 0 15px #edc53f; }
+.tile-2048 { background-color: #edc22e; color: #f9f6f2; font-size: 1.4em; box-shadow: 0 0 20px #edc22e; }
+.tile-super { background-color: #3c3a32; color: #f9f6f2; font-size: 1.4em; box-shadow: 0 0 20px #ff1744; }
 
-@media (max-width: 768px) {
-  .controls-info { display: none; }
-  .mobile-controls { display: block; }
+
+.overlay {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(15, 23, 42, 0.8);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  border-radius: 8px;
+}
+.overlay h2 { font-size: 3rem; color: #fff; }
+.reset-button {
+  padding: 0.8rem 2rem; font-size: 1.1rem; font-weight: 600;
+  color: #fff; background-color: var(--accent-color, #e94560);
+  border: none; border-radius: 8px; cursor: pointer;
+  transition: background-color 0.2s ease; margin-top: 1rem;
+}
+.reset-button:hover { background-color: var(--accent-hover, #ff6e87); }
+
+.controls-info { text-align: center; margin-top: 1.5rem; color: var(--text-secondary); }
+.mobile-controls { margin-top: 1rem; }
+.d-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-width: 200px; margin: 0 auto; }
+.control-btn { aspect-ratio: 1 / 1; font-size: 1.5rem; font-weight: bold; background-color: rgba(255,255,255,0.1); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; cursor: pointer; }
+.control-btn:active { background-color: rgba(255,255,255,0.2); }
+.d-pad-cell { background: transparent; }
+
+h3 { font-size: 1.5rem; }
+.leaderboard-list { list-style: none; padding: 0; margin-top: 1rem; }
+.leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; border-bottom: 1px solid var(--border-color); }
+.leaderboard-item:last-child { border-bottom: none; }
+.player-info { display: flex; align-items: center; gap: 1rem; }
+.rank { font-weight: 700; font-size: 1.2rem; min-width: 35px; }
+.player-name { font-weight: 600; }
+.score-value { font-weight: 700; font-size: 1.2rem; }
+.loading-text { color: var(--text-secondary); }
+
+
+@media (min-width: 992px) {
+  .page-container { align-items: center; padding: 1.5rem; }
+  .game-2048-card { flex-direction: row; align-items: flex-start; }
+  .mobile-controls { display: none; }
 }
 
-@media (min-width: 900px) {
-  .card {
-    flex-direction: row;
-    align-items: flex-start;
-    max-width: 900px;
-  }
-  .leaderboard-section { flex-basis: 280px; flex-shrink: 0; }
+@media (max-width: 480px) {
+  h1 { font-size: 2.5rem; }
+  .tile { font-size: 1.5em; }
+  .tile-16, .tile-32, .tile-64 { font-size: 1.4em; }
+  .tile-128, .tile-256, .tile-512 { font-size: 1.2em; }
+  .tile-1024, .tile-2048, .tile-super { font-size: 1em; }
 }
-
-/* Warna untuk setiap nilai tile */
-.tile-0 { background-color: transparent; }
-.tile-2 { background-color: #eee4da; color: #776e65; }
-.tile-4 { background-color: #ede0c8; color: #776e65; }
-.tile-8 { background-color: #f2b179; color: #f9f6f2; }
-.tile-16 { background-color: #f59563; color: #f9f6f2; }
-.tile-32 { background-color: #f67c5f; color: #f9f6f2; }
-.tile-64 { background-color: #f65e3b; color: #f9f6f2; }
-.tile-128 { background-color: #edcf72; color: #f9f6f2; }
-.tile-256 { background-color: #edcc61; color: #f9f6f2; }
-.tile-512 { background-color: #edc850; color: #f9f6f2; }
-.tile-1024 { background-color: #edc53f; color: #f9f6f2; }
-.tile-2048 { background-color: #edc22e; color: #f9f6f2; }
-.tile-super { background-color: #3c3a32; color: #f9f6f2; }
 </style>
