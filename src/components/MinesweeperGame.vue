@@ -310,22 +310,29 @@ h3 { font-size: 1.5rem; }
 .board {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
-  grid-template-rows: repeat(10, 1fr);
+  grid-template-rows: repeat(10, 1fr); 
   gap: 4px;
-  max-width: 500px; margin: 0 auto;
+  max-width: 500px; 
+  margin: 0 auto;
   aspect-ratio: 1/1;
 }
 .cell {
   background-color: #2c3e50;
   border-radius: 4px;
-  display: flex; justify-content: center; align-items: center;
-  font-size: 1.2rem; font-weight: bold;
-  cursor: pointer; user-select: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
   transition: all 0.2s ease;
   border-top: 3px solid #4a5568;
   border-left: 3px solid #4a5568;
   border-bottom: 3px solid #1a202c;
   border-right: 3px solid #1a202c;
+  line-height: 1;
+  overflow: hidden;
 }
 .cell:not(.revealed):active {
   transform: scale(0.95);

@@ -82,9 +82,14 @@ async function fetchLeaderboard() {
   isLoading.value = true;
   try {
     const response = await axios.get('https://api.sainzlab.site/api/scores/Puzzle Geser');
-    leaderboard.value = response.data.sort((a, b) => a.score - b.score);
+    
+    leaderboard.value = response.data
+      .sort((a, b) => a.score - b.score) 
+      .slice(0, 5);
+      
   } catch (error) {
     console.error("Gagal mengambil leaderboard:", error);
+    leaderboard.value = []; 
   } finally {
     isLoading.value = false;
   }
